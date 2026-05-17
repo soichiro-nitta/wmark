@@ -262,11 +262,12 @@ final class AppModel: ObservableObject {
     }
 
     private func refreshSpaceStateWhenReady(previous snapshotPrevious: SpaceSnapshot?, attemptsRemaining: Int) {
-        let snapshotCurrent = currentSpaceSnapshot()
+        let windowsCurrent = scanWindowsForApp()
+        let snapshotCurrent = currentSpaceSnapshot(matching: windowsCurrent)
 
         if snapshotCurrent != snapshotPrevious || attemptsRemaining <= 0 {
             withAnimation(.easeInOut(duration: 0.18)) {
-                refreshSpaceState(force: true, snapshot: snapshotCurrent)
+                refreshSpaceState(force: true, snapshot: snapshotCurrent, windows: windowsCurrent)
                 stateSpaceRefreshing = false
             }
         } else {
@@ -279,11 +280,14 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func refreshSpaceState(force: Bool, snapshot: SpaceSnapshot? = currentSpaceSnapshot()) {
-        if force || snapshot != stateSpaceSnapshot {
-            stateSpaceSnapshot = snapshot
-            dataSpaceTitle = snapshot?.title ?? "wmark"
-            dataWindows = scanWindowsForApp()
+    private func refreshSpaceState(force: Bool, snapshot: SpaceSnapshot? = nil, windows: [WindowRecord]? = nil) {
+        let windowsCurrent = windows ?? scanWindowsForApp()
+        let snapshotCurrent = snapshot ?? currentSpaceSnapshot(matching: windowsCurrent)
+
+        if force || snapshotCurrent != stateSpaceSnapshot {
+            stateSpaceSnapshot = snapshotCurrent
+            dataSpaceTitle = snapshotCurrent?.title ?? "wmark"
+            dataWindows = windowsCurrent
             syncTargetIds()
         }
     }
@@ -669,8 +673,9 @@ func scanWindowsForApp() -> [WindowRecord] {
     .filter { $0.layer == 0 && !$0.title.isEmpty }
 }
 
-func currentSpaceSnapshot() -> SpaceSnapshot? {
+func currentSpaceSnapshot(matching windows: [WindowRecord]? = nil) -> SpaceSnapshot? {
     var valueSnapshot: SpaceSnapshot?
+    var dataSpaceRows: [(id: Int, uuid: String, index: Int)] = []
     let urlSpaces = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Preferences/com.apple.spaces.plist")
 
@@ -686,10 +691,18 @@ func currentSpaceSnapshot() -> SpaceSnapshot? {
                 let idCurrent = dataCurrentSpace["ManagedSpaceID"] as? Int,
                 let dataSpaces = dataMonitor["Spaces"] as? [[String: Any]]
             {
-                for indexSpace in dataSpaces.indices where valueSnapshot == nil {
+                for indexSpace in dataSpaces.indices {
                     if
                         let idSpace = dataSpaces[indexSpace]["ManagedSpaceID"] as? Int,
-                        idSpace == idCurrent
+                        let uuidSpace = dataSpaces[indexSpace]["uuid"] as? String
+                    {
+                        dataSpaceRows.append((id: idSpace, uuid: uuidSpace, index: indexSpace + 1))
+                    }
+
+                    if
+                        let idSpace = dataSpaces[indexSpace]["ManagedSpaceID"] as? Int,
+                        idSpace == idCurrent,
+                        valueSnapshot == nil
                     {
                         valueSnapshot = SpaceSnapshot(
                             id: idCurrent,
@@ -697,6 +710,37 @@ func currentSpaceSnapshot() -> SpaceSnapshot? {
                         )
                     }
                 }
+            }
+        }
+
+        if
+            let windows,
+            let dataProperties = dataConfiguration["Space Properties"] as? [[String: Any]]
+        {
+            let idsVisible = Set(windows.map { Int($0.windowId) })
+            var valueBestScore = 0
+            var snapshotVisible: SpaceSnapshot?
+
+            for dataProperty in dataProperties {
+                if
+                    let uuidSpace = dataProperty["name"] as? String,
+                    let idsSpace = dataProperty["windows"] as? [Int],
+                    let dataSpace = dataSpaceRows.first(where: { $0.uuid == uuidSpace })
+                {
+                    let valueScore = Set(idsSpace).intersection(idsVisible).count
+
+                    if valueScore > valueBestScore {
+                        valueBestScore = valueScore
+                        snapshotVisible = SpaceSnapshot(
+                            id: dataSpace.id,
+                            title: localizedDesktopTitle(dataSpace.index)
+                        )
+                    }
+                }
+            }
+
+            if valueBestScore > 0 {
+                valueSnapshot = snapshotVisible
             }
         }
     }
