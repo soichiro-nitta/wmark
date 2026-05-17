@@ -107,7 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             windowMain?.standardWindowButton(.miniaturizeButton)?.isHidden = true
             windowMain?.standardWindowButton(.zoomButton)?.isHidden = true
             windowMain?.minSize = NSSize(width: 280, height: 360)
-            windowMain?.contentView = ResizeCursorHostingView(
+            windowMain?.contentView = NSHostingView(
                 rootView: ContentView(model: model)
                     .frame(minWidth: 280, minHeight: 360)
             )
@@ -133,44 +133,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 final class AppWindow: NSWindow {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
-}
-
-final class ResizeCursorHostingView<Content: View>: NSHostingView<Content> {
-    private let valueResizeCursorMargin: CGFloat = 5
-
-    override func resetCursorRects() {
-        super.resetCursorRects()
-
-        addCursorRect(
-            NSRect(x: 0, y: 0, width: valueResizeCursorMargin, height: bounds.height),
-            cursor: .resizeLeftRight
-        )
-        addCursorRect(
-            NSRect(x: bounds.width - valueResizeCursorMargin, y: 0, width: valueResizeCursorMargin, height: bounds.height),
-            cursor: .resizeLeftRight
-        )
-        addCursorRect(
-            NSRect(x: 0, y: 0, width: bounds.width, height: valueResizeCursorMargin),
-            cursor: .resizeUpDown
-        )
-        addCursorRect(
-            NSRect(x: 0, y: bounds.height - valueResizeCursorMargin, width: bounds.width, height: valueResizeCursorMargin),
-            cursor: .resizeUpDown
-        )
-    }
-
-    override func setFrameSize(_ newSize: NSSize) {
-        super.setFrameSize(newSize)
-        window?.invalidateCursorRects(for: self)
-    }
-
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-
-        if let window {
-            window.invalidateCursorRects(for: self)
-        }
-    }
 }
 
 final class ShortcutManager {
@@ -466,8 +428,54 @@ struct ContentView: View {
             .padding(.horizontal, 14)
             .padding(.top, 4)
             .padding(.bottom, 14)
+
+            ResizeCursorZones()
         }
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+}
+
+struct ResizeCursorZones: View {
+    private let valueSize: CGFloat = 7
+
+    var body: some View {
+        ZStack {
+            HStack(spacing: 0) {
+                ResizeCursorZone(cursor: .resizeLeftRight)
+                    .frame(width: valueSize)
+
+                Spacer(minLength: 0)
+
+                ResizeCursorZone(cursor: .resizeLeftRight)
+                    .frame(width: valueSize)
+            }
+
+            VStack(spacing: 0) {
+                ResizeCursorZone(cursor: .resizeUpDown)
+                    .frame(height: valueSize)
+
+                Spacer(minLength: 0)
+
+                ResizeCursorZone(cursor: .resizeUpDown)
+                    .frame(height: valueSize)
+            }
+        }
+    }
+}
+
+struct ResizeCursorZone: View {
+    let cursor: NSCursor
+
+    var body: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .onHover { stateHovering in
+                if stateHovering {
+                    cursor.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
     }
 }
 
