@@ -513,6 +513,7 @@ struct AppToolbar: View {
             )
             .shadow(color: .black.opacity(0.2), radius: 8, y: 3)
             .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.trailing, -6)
         }
         .controlSize(.regular)
         .buttonStyle(.plain)
