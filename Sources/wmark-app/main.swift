@@ -245,9 +245,9 @@ final class AppModel: ObservableObject {
         let snapshotCurrent = currentSpaceSnapshot(matching: windowsCurrent)
 
         if snapshotCurrent != snapshotPrevious || attemptsRemaining <= 0 {
-            let intervalRemaining = max(0, 0.28 - Date().timeIntervalSince(dateSpaceRefreshStarted))
+            let intervalRemaining = max(0, 0.55 - Date().timeIntervalSince(dateSpaceRefreshStarted))
             let taskRefresh = DispatchWorkItem { [weak self] in
-                withAnimation(.easeInOut(duration: 0.22)) {
+                withAnimation(.easeInOut(duration: 0.3)) {
                     self?.refreshSpaceState(force: true, snapshot: snapshotCurrent, windows: windowsCurrent)
                     self?.stateSpaceRefreshing = false
                 }
