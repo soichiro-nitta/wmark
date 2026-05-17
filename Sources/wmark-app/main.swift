@@ -74,6 +74,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.model.startSelectionMode()
             }
         }
+        configureMainWindow()
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        configureMainWindow()
+    }
+
+    private func configureMainWindow() {
+        for window in NSApplication.shared.windows where window.title == "wmark" {
+            window.level = .floating
+            window.collectionBehavior.insert(.canJoinAllSpaces)
+            window.collectionBehavior.insert(.fullScreenAuxiliary)
+            window.collectionBehavior.insert(.stationary)
+            window.hidesOnDeactivate = false
+            window.orderFrontRegardless()
+        }
     }
 }
 
