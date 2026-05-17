@@ -312,6 +312,7 @@ final class AppModel: ObservableObject {
     @Published var stateSelectionMode = false
     @Published var stateHighlightedWindow: WindowRecord?
     @Published var dataSpaceTitle = currentSpaceSnapshot()?.title ?? "wmark"
+    @Published var dataTargetIds: [WindowId: String] = [:]
 
     private var monitorMouseMoved: Any?
     private var monitorMouseDown: Any?
@@ -322,6 +323,7 @@ final class AppModel: ObservableObject {
 
     init() {
         dataWindows = scanWindowsForApp()
+        syncTargetIds()
         startSpaceTracking()
     }
 
@@ -358,13 +360,26 @@ final class AppModel: ObservableObject {
             stateSpaceSnapshot = valueSnapshot
             dataSpaceTitle = valueSnapshot?.title ?? "wmark"
             dataWindows = scanWindowsForApp()
+            syncTargetIds()
         }
     }
 
     func mark(_ window: WindowRecord?) {
         stateSelectedWindow = window
-        showCopiedToast(markWindow(window))
+        showCopiedToast(markWindow(window, id: window.flatMap { dataTargetIds[$0.windowId] }))
         scan()
+    }
+
+    private func syncTargetIds() {
+        var dataNext = dataTargetIds
+
+        for window in dataWindows where dataNext[window.windowId] == nil {
+            dataNext[window.windowId] = makeTargetId()
+        }
+
+        dataTargetIds = dataNext.filter { idWindow, _ in
+            dataWindows.contains { $0.windowId == idWindow }
+        }
     }
 
     private func showCopiedToast(_ text: String) {
@@ -628,6 +643,7 @@ struct WindowListPane: View {
                     ForEach(model.dataWindows) { window in
                         WindowRow(
                             window: window,
+                            targetId: model.dataTargetIds[window.windowId] ?? "",
                             stateActive: model.stateHoveredWindow?.id == window.id || model.stateSelectedWindow?.id == window.id
                         ) {
                             model.mark(window)
@@ -649,22 +665,35 @@ struct WindowListPane: View {
 
 struct WindowRow: View {
     let window: WindowRecord
+    let targetId: String
     let stateActive: Bool
     let onClick: () -> Void
 
     var body: some View {
         Button(action: onClick) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(window.app)
-                    .font(.callout)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(window.app)
+                        .font(.callout)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
 
-                Text(window.title.isEmpty ? "Untitled window" : window.title)
-                    .font(.callout)
+                    Text(window.title.isEmpty ? "Untitled window" : window.title)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(targetId)
+                    .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.thinMaterial)
+                    .clipShape(Capsule())
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 7)
@@ -788,12 +817,12 @@ func localizedDesktopTitle(_ number: Int) -> String {
     return valueTitle
 }
 
-func markWindow(_ window: WindowRecord?) -> String {
+func markWindow(_ window: WindowRecord?, id: String? = nil) -> String {
     guard let window else {
         return "No target window"
     }
 
-    let id = makeTargetId()
+    let id = id ?? makeTargetId()
     let thumbnail = writeThumbnail(windowId: window.windowId, id: id)
     let target = TargetRecord(
         id: id,
