@@ -529,8 +529,8 @@ struct AppToolbar: View {
                 if model.stateSpaceRefreshing {
                     ProgressView()
                         .controlSize(.small)
-                        .scaleEffect(0.62)
-                        .frame(width: 12, height: 12)
+                        .scaleEffect(0.72)
+                        .frame(width: 14, height: 14)
                 }
 
                 Text(model.stateSelectionMode ? "Click a window" : model.dataSpaceTitle)
