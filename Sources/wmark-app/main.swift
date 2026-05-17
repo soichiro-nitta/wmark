@@ -189,7 +189,7 @@ final class AppModel: ObservableObject {
     @Published var dataWindows: [WindowRecord] = []
     @Published var stateHoveredWindow: WindowRecord?
     @Published var stateSelectedWindow: WindowRecord?
-    @Published var stateCopiedText = ""
+    @Published var stateCopiedWindowId: WindowId?
     @Published var stateSelectionMode = false
     @Published var stateHighlightedWindow: WindowRecord?
     @Published var stateSpaceRefreshing = false
@@ -200,7 +200,7 @@ final class AppModel: ObservableObject {
     private var monitorMouseDown: Any?
     private var windowOverlay: NSWindow?
     private var observerSpace: NSObjectProtocol?
-    private var taskToastDismiss: DispatchWorkItem?
+    private var taskCopiedReset: DispatchWorkItem?
     private var taskSpaceRefresh: DispatchWorkItem?
     private var stateSpaceSnapshot = currentSpaceSnapshot()
 
@@ -265,7 +265,8 @@ final class AppModel: ObservableObject {
 
     func mark(_ window: WindowRecord?) {
         stateSelectedWindow = window
-        showCopiedToast(markWindow(window, id: window.flatMap { dataTargetIds[$0.windowId] }))
+        _ = markWindow(window, id: window.flatMap { dataTargetIds[$0.windowId] })
+        showCopiedState(for: window)
         scan()
     }
 
@@ -281,23 +282,23 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func showCopiedToast(_ text: String) {
-        taskToastDismiss?.cancel()
+    private func showCopiedState(for window: WindowRecord?) {
+        taskCopiedReset?.cancel()
 
         withAnimation(.easeOut(duration: 0.2)) {
-            stateCopiedText = text
+            stateCopiedWindowId = window?.windowId
         }
 
-        let taskDismiss = DispatchWorkItem { [weak self] in
+        let taskReset = DispatchWorkItem { [weak self] in
             DispatchQueue.main.async {
                 withAnimation(.easeOut(duration: 0.2)) {
-                    self?.stateCopiedText = ""
+                    self?.stateCopiedWindowId = nil
                 }
             }
         }
 
-        taskToastDismiss = taskDismiss
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.4, execute: taskDismiss)
+        taskCopiedReset = taskReset
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8, execute: taskReset)
     }
 
     func startSelectionMode() {
@@ -399,7 +400,7 @@ struct ContentView: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
+        ZStack {
             Rectangle()
                 .fill(.thinMaterial)
 
@@ -413,13 +414,6 @@ struct ContentView: View {
             .padding(.horizontal, 14)
             .padding(.top, 4)
             .padding(.bottom, 14)
-
-            if !model.stateCopiedText.isEmpty {
-                StatusToast(text: model.stateCopiedText)
-                    .padding(.leading, 14)
-                    .padding(.bottom, 14)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
         }
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
@@ -504,19 +498,6 @@ struct ToolbarIconButton: View {
     }
 }
 
-struct StatusToast: View {
-    let text: String
-
-    var body: some View {
-        Label(text, systemImage: "checkmark.circle.fill")
-            .font(.callout.weight(.medium))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.thinMaterial)
-            .clipShape(Capsule())
-    }
-}
-
 struct WindowListPane: View {
     @ObservedObject var model: AppModel
 
@@ -528,7 +509,8 @@ struct WindowListPane: View {
                         WindowRow(
                             window: window,
                             targetId: model.dataTargetIds[window.windowId] ?? "",
-                            stateActive: model.stateHoveredWindow?.id == window.id || model.stateSelectedWindow?.id == window.id
+                            stateActive: model.stateHoveredWindow?.id == window.id || model.stateSelectedWindow?.id == window.id,
+                            stateCopied: model.stateCopiedWindowId == window.windowId
                         ) {
                             model.mark(window)
                         }
@@ -551,6 +533,7 @@ struct WindowRow: View {
     let window: WindowRecord
     let targetId: String
     let stateActive: Bool
+    let stateCopied: Bool
     let onClick: () -> Void
 
     var body: some View {
@@ -571,13 +554,20 @@ struct WindowRow: View {
 
                 Spacer(minLength: 8)
 
-                Text(targetId)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.thinMaterial)
-                    .clipShape(Capsule())
+                HStack(spacing: 4) {
+                    if stateCopied {
+                        Image(systemName: "checkmark")
+                    }
+
+                    Text(stateCopied ? "Copied" : targetId)
+                }
+                .font(.caption.monospaced())
+                .foregroundStyle(stateCopied ? .primary : .secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(.thinMaterial)
+                .clipShape(Capsule())
+                .animation(.easeOut(duration: 0.2), value: stateCopied)
             }
             .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
