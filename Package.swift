@@ -12,5 +12,8 @@ let package = Package(
         .executableTarget(
             name: "wmark"
         ),
+        .executableTarget(
+            name: "wmark-app"
+        ),
     ]
 )

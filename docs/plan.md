@@ -28,6 +28,8 @@ A previous approach tried to detect the macOS Space that contains the current Co
 
 `wmark` should act as a temporary target registry rather than a window automation tool.
 
+For the MVP, the marked unit is a macOS window. Chrome tab title and URL can be stored as optional context when available, but the target record should keep one uniform top-level window schema across all applications.
+
 It should store target records in a local, Git-ignored location, for example:
 
 ```text
@@ -40,18 +42,19 @@ A target record should include enough evidence to validate the target later:
 ```json
 {
   "id": "WTG-A7F3",
-  "kind": "chrome-tab",
+  "kind": "window",
   "app": "Google Chrome",
-  "bundleId": "com.google.Chrome",
   "pid": 12345,
   "windowId": 987654,
   "windowTitle": "GitHub",
-  "tabTitle": "Pull Request #88",
-  "url": "https://github.com/MonsterBank-dev/proofly/pull/88",
   "bounds": { "x": 100, "y": 80, "width": 1400, "height": 900 },
   "thumbnailPath": "~/.codex/window-targets/thumbs/WTG-A7F3.png",
   "capturedAt": "2026-05-17T15:12:38+09:00",
-  "status": "pending"
+  "status": "pending",
+  "context": {
+    "chromeTabTitle": "Pull Request #88",
+    "chromeURL": "https://github.com/example/repo/pull/88"
+  }
 }
 ```
 
@@ -60,7 +63,7 @@ A target record should include enough evidence to validate the target later:
 Codex-side resolution should be conservative.
 
 - `windowId + pid + app` is a strong match.
-- For Chrome, `url + tabTitle` adds another strong signal.
+- App-specific context can help users recognize a target, but the MVP does not require it for identity.
 - If the marked window no longer exists, treat the target as `stale`.
 - If multiple candidates match, do not operate and ask the user to clarify.
 - If no candidate matches, do not operate.
@@ -76,6 +79,7 @@ Codex-side resolution should be conservative.
 5. Implement a small CLI or Swift experiment that scans visible windows and writes a target queue.
 6. Implement marking the frontmost window and copying `target: WTG-xxxx`.
 7. Implement conservative target resolution from the queue.
+8. Implement an early SwiftUI app with scan list, hover preview, click-to-copy, and selection mode.
 
 ## Later Features
 
