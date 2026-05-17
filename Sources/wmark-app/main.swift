@@ -94,7 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showMainWindow() {
         if windowMain == nil {
-            windowMain = BorderlessResizeWindow(
+            windowMain = AppWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 400, height: 560),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                 backing: .buffered,
@@ -128,130 +128,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-final class BorderlessResizeWindow: NSWindow {
-    private let valueResizeMargin: CGFloat = 10
-
+final class AppWindow: NSWindow {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
-
-    override func sendEvent(_ event: NSEvent) {
-        let valueEdge = resizeEdge(at: event.locationInWindow)
-
-        if event.type == .leftMouseDown && !valueEdge.isEmpty {
-            resizeWindow(edge: valueEdge)
-        } else {
-            if event.type == .mouseMoved {
-                updateCursor(for: valueEdge)
-            }
-
-            super.sendEvent(event)
-        }
-    }
-
-    private func resizeEdge(at point: NSPoint) -> ResizeEdge {
-        var valueEdge: ResizeEdge = []
-
-        if point.x <= valueResizeMargin {
-            valueEdge.insert(.minX)
-        }
-
-        if frame.width - point.x <= valueResizeMargin {
-            valueEdge.insert(.maxX)
-        }
-
-        if point.y <= valueResizeMargin {
-            valueEdge.insert(.minY)
-        }
-
-        if frame.height - point.y <= valueResizeMargin {
-            valueEdge.insert(.maxY)
-        }
-
-        return valueEdge
-    }
-
-    private func resizeWindow(edge: ResizeEdge) {
-        let pointStart = NSEvent.mouseLocation
-        let frameStart = frame
-
-        var stateDragging = true
-
-        while stateDragging {
-            if let eventNext = nextEvent(matching: [.leftMouseDragged, .leftMouseUp], until: .distantFuture, inMode: .eventTracking, dequeue: true) {
-                if eventNext.type == .leftMouseUp {
-                    stateDragging = false
-                }
-
-                if stateDragging {
-                    setFrame(
-                        resizedFrame(from: frameStart, pointStart: pointStart, pointCurrent: NSEvent.mouseLocation, edge: edge),
-                        display: true
-                    )
-                }
-            }
-        }
-    }
-
-    private func resizedFrame(from frameStart: NSRect, pointStart: NSPoint, pointCurrent: NSPoint, edge: ResizeEdge) -> NSRect {
-        var frameNext = frameStart
-        let valueDeltaX = pointCurrent.x - pointStart.x
-        let valueDeltaY = pointCurrent.y - pointStart.y
-
-        if edge.contains(.minX) {
-            frameNext.origin.x = frameStart.origin.x + valueDeltaX
-            frameNext.size.width = frameStart.size.width - valueDeltaX
-        }
-
-        if edge.contains(.maxX) {
-            frameNext.size.width = frameStart.size.width + valueDeltaX
-        }
-
-        if edge.contains(.minY) {
-            frameNext.origin.y = frameStart.origin.y + valueDeltaY
-            frameNext.size.height = frameStart.size.height - valueDeltaY
-        }
-
-        if edge.contains(.maxY) {
-            frameNext.size.height = frameStart.size.height + valueDeltaY
-        }
-
-        if frameNext.width < minSize.width {
-            if edge.contains(.minX) {
-                frameNext.origin.x = frameStart.maxX - minSize.width
-            }
-            frameNext.size.width = minSize.width
-        }
-
-        if frameNext.height < minSize.height {
-            if edge.contains(.minY) {
-                frameNext.origin.y = frameStart.maxY - minSize.height
-            }
-            frameNext.size.height = minSize.height
-        }
-
-        return frameNext
-    }
-
-    private func updateCursor(for edge: ResizeEdge) {
-        if edge.isEmpty {
-            NSCursor.arrow.set()
-        } else if edge == [.minX] || edge == [.maxX] {
-            NSCursor.resizeLeftRight.set()
-        } else if edge == [.minY] || edge == [.maxY] {
-            NSCursor.resizeUpDown.set()
-        } else {
-            NSCursor.crosshair.set()
-        }
-    }
-}
-
-struct ResizeEdge: OptionSet {
-    let rawValue: Int
-
-    static let minX = ResizeEdge(rawValue: 1 << 0)
-    static let maxX = ResizeEdge(rawValue: 1 << 1)
-    static let minY = ResizeEdge(rawValue: 1 << 2)
-    static let maxY = ResizeEdge(rawValue: 1 << 3)
 }
 
 final class ShortcutManager {
