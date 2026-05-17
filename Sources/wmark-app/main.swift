@@ -96,13 +96,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if windowMain == nil {
             windowMain = AppWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 400, height: 560),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+                styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
             windowMain?.title = "wmark"
             windowMain?.titleVisibility = .hidden
             windowMain?.titlebarAppearsTransparent = true
+            windowMain?.standardWindowButton(.closeButton)?.setFrameOrigin(NSPoint(x: 14, y: 13))
+            windowMain?.standardWindowButton(.miniaturizeButton)?.isHidden = true
+            windowMain?.standardWindowButton(.zoomButton)?.isHidden = true
             windowMain?.minSize = NSSize(width: 280, height: 360)
             windowMain?.acceptsMouseMovedEvents = true
             windowMain?.contentView = NSHostingView(
@@ -454,7 +457,7 @@ struct AppToolbar: View {
     var body: some View {
         ZStack {
             Color.clear
-                .frame(width: 72, height: 24)
+                .frame(width: 28, height: 24)
             .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 6) {
