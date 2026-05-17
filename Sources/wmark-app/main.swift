@@ -262,9 +262,9 @@ struct HighlightOverlay: View {
             .fill(Color.accentColor.opacity(0.08))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.accentColor, lineWidth: 3)
+                    .stroke(Color.accentColor.opacity(0.8), lineWidth: 2)
             )
-            .shadow(color: Color.accentColor.opacity(0.28), radius: 10)
+            .shadow(color: Color.accentColor.opacity(0.24), radius: 10)
     }
 }
 
@@ -336,15 +336,11 @@ struct AppToolbar: View {
         }
         .labelStyle(.titleAndIcon)
         .controlSize(.regular)
-        .buttonStyle(.bordered)
+        .buttonStyle(.plain)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(.thinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(.white.opacity(0.08))
-        )
     }
 }
 
@@ -358,10 +354,6 @@ struct StatusToast: View {
             .padding(.vertical, 8)
             .background(.thinMaterial)
             .clipShape(Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(.white.opacity(0.1))
-            )
     }
 }
 
@@ -445,10 +437,6 @@ struct HoverPreview: View {
                 .padding(6)
                 .background(.thinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(.primary.opacity(0.08))
-                )
         } else {
             Image(systemName: "eye.slash")
                 .font(.title)
