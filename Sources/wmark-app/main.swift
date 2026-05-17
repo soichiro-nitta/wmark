@@ -473,13 +473,6 @@ struct AppToolbar: View {
             }
             .help(model.stateSelectionMode ? "Cancel" : "Select")
 
-            Button {
-                model.mark(model.dataWindows.first)
-            } label: {
-                Image(systemName: "macwindow.badge.plus")
-            }
-            .keyboardShortcut("m")
-            .help("Mark frontmost")
         }
         .controlSize(.regular)
         .buttonStyle(.plain)
