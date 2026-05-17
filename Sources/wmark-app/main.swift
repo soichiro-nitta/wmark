@@ -695,8 +695,7 @@ struct WindowRow: View {
                     .background(.thinMaterial)
                     .clipShape(Capsule())
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 7)
+            .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
