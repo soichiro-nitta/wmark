@@ -52,7 +52,6 @@ let fileQueue = directoryTargets.appendingPathComponent("queue.json")
 
 let encoderJson = JSONEncoder()
 let decoderJson = JSONDecoder()
-let animationMotionOut = Animation.timingCurve(0.32, 0.72, 0, 1, duration: 0.24)
 
 @main
 struct WmarkApp: App {
@@ -285,13 +284,13 @@ final class AppModel: ObservableObject {
     private func showCopiedToast(_ text: String) {
         taskToastDismiss?.cancel()
 
-        withAnimation(animationMotionOut) {
+        withAnimation(.easeOut(duration: 0.2)) {
             stateCopiedText = text
         }
 
         let taskDismiss = DispatchWorkItem { [weak self] in
             DispatchQueue.main.async {
-                withAnimation(animationMotionOut) {
+                withAnimation(.easeOut(duration: 0.2)) {
                     self?.stateCopiedText = ""
                 }
             }
