@@ -531,7 +531,7 @@ struct ToolbarIconButton: View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .frame(width: 24, height: 24)
-                .background(stateHovering ? Color.accentColor.opacity(0.8) : Color.clear)
+                .background(stateHovering ? Color.primary.opacity(0.12) : Color.clear)
                 .clipShape(Circle())
         }
         .buttonStyle(.plain)
