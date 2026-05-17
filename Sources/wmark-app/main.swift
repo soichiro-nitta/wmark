@@ -78,6 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
+        model.refreshSpaceTitle()
         showMainWindow()
     }
 
@@ -282,6 +283,7 @@ final class AppModel: ObservableObject {
     @Published var stateCopiedText = ""
     @Published var stateSelectionMode = false
     @Published var stateHighlightedWindow: WindowRecord?
+    @Published var dataSpaceTitle = currentSpaceTitle() ?? "wmark"
 
     private var monitorMouseMoved: Any?
     private var monitorMouseDown: Any?
@@ -292,7 +294,12 @@ final class AppModel: ObservableObject {
     }
 
     func scan() {
+        refreshSpaceTitle()
         dataWindows = scanWindowsForApp()
+    }
+
+    func refreshSpaceTitle() {
+        dataSpaceTitle = currentSpaceTitle() ?? "wmark"
     }
 
     func mark(_ window: WindowRecord?) {
@@ -447,7 +454,7 @@ struct AppToolbar: View {
 
             Spacer()
 
-            Text(model.stateSelectionMode ? "Click a window" : "wmark")
+            Text(model.stateSelectionMode ? "Click a window" : model.dataSpaceTitle)
                 .font(.headline.weight(.medium))
                 .foregroundStyle(model.stateSelectionMode ? .secondary : .primary)
                 .lineLimit(1)
@@ -633,6 +640,49 @@ func scanWindowsForApp() -> [WindowRecord] {
         )
     }
     .filter { $0.layer == 0 && !$0.title.isEmpty }
+}
+
+func currentSpaceTitle() -> String? {
+    var valueTitle: String?
+    let urlSpaces = FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent("Library/Preferences/com.apple.spaces.plist")
+
+    if
+        let dataSpaces = NSDictionary(contentsOf: urlSpaces) as? [String: Any],
+        let dataConfiguration = dataSpaces["SpacesDisplayConfiguration"] as? [String: Any],
+        let dataManagement = dataConfiguration["Management Data"] as? [String: Any],
+        let dataMonitors = dataManagement["Monitors"] as? [[String: Any]]
+    {
+        for dataMonitor in dataMonitors where valueTitle == nil {
+            if
+                let dataCurrentSpace = dataMonitor["Current Space"] as? [String: Any],
+                let idCurrent = dataCurrentSpace["ManagedSpaceID"] as? Int,
+                let dataSpaces = dataMonitor["Spaces"] as? [[String: Any]]
+            {
+                for indexSpace in dataSpaces.indices where valueTitle == nil {
+                    if
+                        let idSpace = dataSpaces[indexSpace]["ManagedSpaceID"] as? Int,
+                        idSpace == idCurrent
+                    {
+                        valueTitle = localizedDesktopTitle(indexSpace + 1)
+                    }
+                }
+            }
+        }
+    }
+
+    return valueTitle
+}
+
+func localizedDesktopTitle(_ number: Int) -> String {
+    var valueTitle = "Desktop \(number)"
+    let valueLanguage = Locale.preferredLanguages.first ?? Locale.current.identifier
+
+    if valueLanguage.hasPrefix("ja") {
+        valueTitle = "デスクトップ \(number)"
+    }
+
+    return valueTitle
 }
 
 func markWindow(_ window: WindowRecord?) -> String {
