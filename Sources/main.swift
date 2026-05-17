@@ -34,12 +34,11 @@ struct TargetRecord: Codable {
     let pid: Int
     let windowId: WindowId
     let windowTitle: String
-    let tabTitle: String?
-    let url: String?
     let bounds: Bounds
     let thumbnailPath: String?
     let capturedAt: String
     let status: String
+    let context: [String: String]
 }
 
 struct ResolveRecord: Codable {
@@ -181,12 +180,11 @@ func runMarkFrontmostCommand() {
         pid: window.pid,
         windowId: window.windowId,
         windowTitle: window.title,
-        tabTitle: chrome?.title,
-        url: chrome?.url,
         bounds: window.bounds,
         thumbnailPath: thumbnail?.path(percentEncoded: false),
         capturedAt: ISO8601DateFormatter().string(from: Date()),
-        status: "pending"
+        status: "pending",
+        context: makeTargetContext(chrome)
     )
 
     appendTarget(target)
@@ -329,12 +327,11 @@ func updateTargetStatus(id: String, status: String) {
                 pid: target.pid,
                 windowId: target.windowId,
                 windowTitle: target.windowTitle,
-                tabTitle: target.tabTitle,
-                url: target.url,
                 bounds: target.bounds,
                 thumbnailPath: target.thumbnailPath,
                 capturedAt: target.capturedAt,
-                status: status
+                status: status,
+                context: target.context
             )
         }
 
@@ -345,6 +342,17 @@ func updateTargetStatus(id: String, status: String) {
     if let dataNext {
         try? dataNext.write(to: fileQueue, options: .atomic)
     }
+}
+
+func makeTargetContext(_ chrome: ChromeTabRecord?) -> [String: String] {
+    var context: [String: String] = [:]
+
+    if let chrome {
+        context["chromeTabTitle"] = chrome.title
+        context["chromeURL"] = chrome.url
+    }
+
+    return context
 }
 
 func readTargets() -> [TargetRecord] {
