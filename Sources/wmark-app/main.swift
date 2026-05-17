@@ -89,7 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showMainWindow() {
         if windowMain == nil {
             windowMain = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 440, height: 560),
+                contentRect: NSRect(x: 0, y: 0, width: 400, height: 560),
                 styleMask: [.borderless, .resizable],
                 backing: .buffered,
                 defer: false
@@ -97,7 +97,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             windowMain?.title = "wmark"
             windowMain?.contentView = NSHostingView(
                 rootView: ContentView(model: model)
-                    .frame(minWidth: 440, minHeight: 560)
+                    .frame(minWidth: 400, minHeight: 560)
             )
             windowMain?.center()
         }
