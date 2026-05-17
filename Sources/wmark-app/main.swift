@@ -317,6 +317,7 @@ final class AppModel: ObservableObject {
     private var monitorMouseDown: Any?
     private var windowOverlay: NSWindow?
     private var observerSpace: NSObjectProtocol?
+    private var taskToastDismiss: DispatchWorkItem?
     private var stateSpaceSnapshot = currentSpaceSnapshot()
 
     init() {
@@ -362,8 +363,27 @@ final class AppModel: ObservableObject {
 
     func mark(_ window: WindowRecord?) {
         stateSelectedWindow = window
-        stateCopiedText = markWindow(window)
+        showCopiedToast(markWindow(window))
         scan()
+    }
+
+    private func showCopiedToast(_ text: String) {
+        taskToastDismiss?.cancel()
+
+        withAnimation(.easeOut(duration: 0.16)) {
+            stateCopiedText = text
+        }
+
+        let taskDismiss = DispatchWorkItem { [weak self] in
+            DispatchQueue.main.async {
+                withAnimation(.easeInOut(duration: 0.24)) {
+                    self?.stateCopiedText = ""
+                }
+            }
+        }
+
+        taskToastDismiss = taskDismiss
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.4, execute: taskDismiss)
     }
 
     func startSelectionMode() {
@@ -465,7 +485,7 @@ struct ContentView: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack(alignment: .bottomLeading) {
             Rectangle()
                 .fill(.thinMaterial)
 
@@ -482,8 +502,9 @@ struct ContentView: View {
 
             if !model.stateCopiedText.isEmpty {
                 StatusToast(text: model.stateCopiedText)
-                    .padding(.top, 4)
-                    .padding(.trailing, 16)
+                    .padding(.leading, 14)
+                    .padding(.bottom, 14)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
