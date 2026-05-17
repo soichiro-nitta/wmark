@@ -22,5 +22,6 @@ swift build
 
 `mark-frontmost` writes short-lived local target records under `~/.codex/window-targets/` and copies `target: WTG-xxxx` to the pasteboard.
 `resolve` revalidates a saved target against the current window state and stops unless one current window matches the saved `windowId + pid + app`.
+Chrome title and URL are optional context only; the MVP targets macOS windows rather than individual Chrome tabs.
 
 Window thumbnails and target queues may contain sensitive local window data. Keep them outside Git.

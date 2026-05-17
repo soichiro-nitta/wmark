@@ -76,6 +76,8 @@ case "queue":
     printJson(readTargets())
 case "resolve":
     runResolveCommand()
+case "consume":
+    runConsumeCommand()
 default:
     printUsage()
 }
@@ -174,7 +176,7 @@ func runMarkFrontmostCommand() {
     let thumbnail = writeThumbnail(windowId: window.windowId, id: id)
     let target = TargetRecord(
         id: id,
-        kind: chrome == nil ? "window" : "chrome-tab",
+        kind: "window",
         app: window.app,
         pid: window.pid,
         windowId: window.windowId,
@@ -201,6 +203,25 @@ func runResolveCommand() {
     let id = CommandLine.arguments[2]
     let result = resolveTarget(id: id)
     printJson(result)
+
+    if result.status != "matched" {
+        exit(1)
+    }
+}
+
+func runConsumeCommand() {
+    guard CommandLine.arguments.count >= 3 else {
+        fputs("usage: wmark consume <targetId>\n", stderr)
+        exit(2)
+    }
+
+    let id = CommandLine.arguments[2]
+    let result = resolveTarget(id: id)
+    printJson(result)
+
+    if result.status == "matched" {
+        updateTargetStatus(id: id, status: "used")
+    }
 
     if result.status != "matched" {
         exit(1)
@@ -296,6 +317,36 @@ func appendTarget(_ target: TargetRecord) {
     }
 }
 
+func updateTargetStatus(id: String, status: String) {
+    let targets = readTargets().map { target in
+        var updatedTarget = target
+
+        if target.id == id {
+            updatedTarget = TargetRecord(
+                id: target.id,
+                kind: target.kind,
+                app: target.app,
+                pid: target.pid,
+                windowId: target.windowId,
+                windowTitle: target.windowTitle,
+                tabTitle: target.tabTitle,
+                url: target.url,
+                bounds: target.bounds,
+                thumbnailPath: target.thumbnailPath,
+                capturedAt: target.capturedAt,
+                status: status
+            )
+        }
+
+        return updatedTarget
+    }
+    let dataNext = try? encoderJson.encode(targets)
+
+    if let dataNext {
+        try? dataNext.write(to: fileQueue, options: .atomic)
+    }
+}
+
 func readTargets() -> [TargetRecord] {
     let dataExisting = try? Data(contentsOf: fileQueue)
     return dataExisting.flatMap { try? decoderJson.decode([TargetRecord].self, from: $0) } ?? []
@@ -340,6 +391,7 @@ func printUsage() {
           wmark mark-frontmost
           wmark queue
           wmark resolve <targetId>
+          wmark consume <targetId>
         """
     )
 }
