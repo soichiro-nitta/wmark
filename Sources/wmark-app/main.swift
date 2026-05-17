@@ -53,9 +53,8 @@ struct WmarkApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        WindowGroup("wmark") {
-            ContentView(model: appDelegate.model)
-                .frame(minWidth: 440, minHeight: 560)
+        Settings {
+            EmptyView()
         }
         .commands {
             CommandGroup(replacing: .newItem) {}
@@ -66,6 +65,7 @@ struct WmarkApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let model = AppModel()
+    private var windowMain: NSWindow?
     private var shortcut: ShortcutManager?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -74,15 +74,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.model.startSelectionMode()
             }
         }
-        configureMainWindow()
+        showMainWindow()
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
-        configureMainWindow()
+        showMainWindow()
     }
 
-    private func configureMainWindow() {
-        for window in NSApplication.shared.windows where window.title == "wmark" {
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showMainWindow()
+        return true
+    }
+
+    private func showMainWindow() {
+        if windowMain == nil {
+            windowMain = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 440, height: 560),
+                styleMask: [.borderless, .resizable],
+                backing: .buffered,
+                defer: false
+            )
+            windowMain?.title = "wmark"
+            windowMain?.contentView = NSHostingView(
+                rootView: ContentView(model: model)
+                    .frame(minWidth: 440, minHeight: 560)
+            )
+            windowMain?.center()
+        }
+
+        if let window = windowMain {
             window.level = .floating
             window.collectionBehavior.insert(.canJoinAllSpaces)
             window.collectionBehavior.insert(.fullScreenAuxiliary)
@@ -90,7 +110,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.hidesOnDeactivate = false
             window.isOpaque = false
             window.backgroundColor = .clear
+            window.hasShadow = true
+            window.isMovableByWindowBackground = true
             window.orderFrontRegardless()
+            window.makeKeyAndOrderFront(nil)
         }
     }
 }
@@ -283,7 +306,9 @@ struct ContentView: View {
 
                 WindowListPane(model: model)
             }
-            .padding(14)
+            .padding(.horizontal, 14)
+            .padding(.top, 18)
+            .padding(.bottom, 14)
 
             if !model.stateCopiedText.isEmpty {
                 StatusToast(text: model.stateCopiedText)
@@ -291,6 +316,7 @@ struct ContentView: View {
                     .padding(.trailing, 16)
             }
         }
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 
@@ -298,24 +324,38 @@ struct AppToolbar: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
-        HStack(spacing: 8) {
-            Text("wmark")
-                .font(.title2.weight(.semibold))
+        HStack(spacing: 10) {
+            HStack(spacing: 10) {
+                WindowControlButton(color: .red) {
+                    NSApplication.shared.keyWindow?.close()
+                }
+
+                WindowControlButton(color: .secondary.opacity(0.45)) {
+                    NSApplication.shared.keyWindow?.miniaturize(nil)
+                }
+
+                WindowControlButton(color: .secondary.opacity(0.45)) {
+                    NSApplication.shared.keyWindow?.zoom(nil)
+                }
+            }
+            .frame(width: 84, alignment: .leading)
 
             Spacer()
 
-            if model.stateSelectionMode {
-                Text("Click a window")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
+            Text(model.stateSelectionMode ? "Click a window" : "wmark")
+                .font(.headline.weight(.medium))
+                .foregroundStyle(model.stateSelectionMode ? .secondary : .primary)
+                .lineLimit(1)
+
+            Spacer()
 
             Button {
                 model.scan()
             } label: {
-                Label("Scan", systemImage: "arrow.clockwise")
+                Image(systemName: "arrow.clockwise")
             }
             .keyboardShortcut("r")
+            .help("Scan")
 
             Button {
                 if model.stateSelectionMode {
@@ -324,23 +364,36 @@ struct AppToolbar: View {
                     model.startSelectionMode()
                 }
             } label: {
-                Label(model.stateSelectionMode ? "Cancel" : "Select", systemImage: model.stateSelectionMode ? "xmark" : "scope")
+                Image(systemName: model.stateSelectionMode ? "xmark" : "scope")
             }
+            .help(model.stateSelectionMode ? "Cancel" : "Select")
 
             Button {
                 model.mark(model.dataWindows.first)
             } label: {
-                Label("Frontmost", systemImage: "macwindow.badge.plus")
+                Image(systemName: "macwindow.badge.plus")
             }
             .keyboardShortcut("m")
+            .help("Mark frontmost")
         }
-        .labelStyle(.titleAndIcon)
         .controlSize(.regular)
         .buttonStyle(.plain)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .font(.title3)
+        .frame(height: 36)
+    }
+}
+
+struct WindowControlButton: View {
+    let color: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Circle()
+                .fill(color)
+                .frame(width: 12, height: 12)
+        }
+        .buttonStyle(.plain)
     }
 }
 
