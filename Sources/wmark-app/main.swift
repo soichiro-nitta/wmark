@@ -107,8 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             windowMain?.standardWindowButton(.miniaturizeButton)?.isHidden = true
             windowMain?.standardWindowButton(.zoomButton)?.isHidden = true
             windowMain?.minSize = NSSize(width: 280, height: 360)
-            windowMain?.acceptsMouseMovedEvents = true
-            windowMain?.contentView = NSHostingView(
+            windowMain?.contentView = ResizeCursorHostingView(
                 rootView: ContentView(model: model)
                     .frame(minWidth: 280, minHeight: 360)
             )
@@ -132,31 +131,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 final class AppWindow: NSWindow {
-    private let valueResizeCursorMargin: CGFloat = 5
-
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+}
 
-    override func sendEvent(_ event: NSEvent) {
-        if event.type == .mouseMoved {
-            updateResizeCursor(at: event.locationInWindow)
-        }
+final class ResizeCursorHostingView<Content: View>: NSHostingView<Content> {
+    private let valueResizeCursorMargin: CGFloat = 5
 
-        super.sendEvent(event)
+    override func resetCursorRects() {
+        super.resetCursorRects()
+
+        addCursorRect(
+            NSRect(x: 0, y: 0, width: valueResizeCursorMargin, height: bounds.height),
+            cursor: .resizeLeftRight
+        )
+        addCursorRect(
+            NSRect(x: bounds.width - valueResizeCursorMargin, y: 0, width: valueResizeCursorMargin, height: bounds.height),
+            cursor: .resizeLeftRight
+        )
+        addCursorRect(
+            NSRect(x: 0, y: 0, width: bounds.width, height: valueResizeCursorMargin),
+            cursor: .resizeUpDown
+        )
+        addCursorRect(
+            NSRect(x: 0, y: bounds.height - valueResizeCursorMargin, width: bounds.width, height: valueResizeCursorMargin),
+            cursor: .resizeUpDown
+        )
     }
 
-    private func updateResizeCursor(at point: NSPoint) {
-        let stateNearLeft = point.x <= valueResizeCursorMargin
-        let stateNearRight = frame.width - point.x <= valueResizeCursorMargin
-        let stateNearBottom = point.y <= valueResizeCursorMargin
-        let stateNearTop = frame.height - point.y <= valueResizeCursorMargin
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        window?.invalidateCursorRects(for: self)
+    }
 
-        if stateNearLeft || stateNearRight {
-            NSCursor.resizeLeftRight.set()
-        } else if stateNearTop || stateNearBottom {
-            NSCursor.resizeUpDown.set()
-        } else {
-            NSCursor.arrow.set()
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+
+        if let window {
+            window.invalidateCursorRects(for: self)
         }
     }
 }
