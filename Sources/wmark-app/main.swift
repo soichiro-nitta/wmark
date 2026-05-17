@@ -377,6 +377,8 @@ struct WindowListPane: View {
                         .onHover { stateHovering in
                             if stateHovering {
                                 model.stateHoveredWindow = window
+                            } else if model.stateHoveredWindow?.id == window.id {
+                                model.stateHoveredWindow = nil
                             }
                         }
                     }
@@ -393,33 +395,32 @@ struct WindowRow: View {
     let onClick: () -> Void
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            Button(action: onClick) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(window.app)
-                        .font(.callout)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
+        Button(action: onClick) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(window.app)
+                    .font(.callout)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
 
-                    Text(window.title.isEmpty ? "Untitled window" : window.title)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 7)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                Text(window.title.isEmpty ? "Untitled window" : window.title)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
         .buttonStyle(.plain)
         .background(stateActive ? AnyShapeStyle(.thinMaterial) : AnyShapeStyle(Color.clear))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
+        .overlay(alignment: .topTrailing) {
             if stateActive {
                 HoverPreview(window: window)
                     .frame(width: 220, height: 140)
-                    .offset(x: 232)
+                    .offset(x: -8, y: 34)
                     .zIndex(1)
             }
         }
