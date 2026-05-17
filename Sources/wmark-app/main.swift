@@ -584,7 +584,7 @@ struct ToolbarIconButton: View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .frame(width: 28, height: 28)
-                .background(stateHovering ? Color.primary.opacity(0.13) : Color.clear)
+                .background(stateHovering ? Color.primary.opacity(0.08) : Color.clear)
                 .clipShape(Circle())
                 .animation(.easeOut(duration: 0.18), value: stateHovering)
         }
