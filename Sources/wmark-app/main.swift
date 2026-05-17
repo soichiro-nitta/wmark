@@ -244,9 +244,9 @@ struct HighlightOverlay: View {
             .fill(Color.accentColor.opacity(0.08))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.accentColor, lineWidth: 4)
+                    .stroke(Color.accentColor, lineWidth: 3)
             )
-            .shadow(color: Color.accentColor.opacity(0.45), radius: 16)
+            .shadow(color: Color.accentColor.opacity(0.28), radius: 10)
     }
 }
 
@@ -255,117 +255,80 @@ struct ContentView: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            VStack(spacing: 16) {
-                GlassToolbar(model: model)
+            VStack(spacing: 12) {
+                AppToolbar(model: model)
 
                 HSplitView {
                     WindowListPane(model: model)
-                        .frame(minWidth: 340, idealWidth: 410)
+                        .frame(minWidth: 300, idealWidth: 340)
 
                     PreviewPane(window: model.stateHoveredWindow ?? model.stateSelectedWindow)
-                        .frame(minWidth: 430)
+                        .frame(minWidth: 440)
                 }
             }
-            .padding(18)
+            .padding(14)
 
             if !model.stateCopiedText.isEmpty {
                 StatusToast(text: model.stateCopiedText)
-                    .padding(.top, 18)
-                    .padding(.trailing, 22)
+                    .padding(.top, 14)
+                    .padding(.trailing, 16)
             }
         }
         .background(.regularMaterial)
     }
 }
 
-struct GlassToolbar: View {
+struct AppToolbar: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("wmark")
-                    .font(.title2.weight(.semibold))
-                Text("選んだウィンドウをCodexへ安全に渡します。")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
+        HStack(spacing: 8) {
+            Text("wmark")
+                .font(.title2.weight(.semibold))
 
             Spacer()
 
             if model.stateSelectionMode {
-                StatusPill(systemImage: "scope", text: "Click a window")
+                Text("Click a window")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
 
-            ToolbarButton(systemImage: "arrow.clockwise", text: "Scan") {
+            Button {
                 model.scan()
+            } label: {
+                Label("Scan", systemImage: "arrow.clockwise")
             }
             .keyboardShortcut("r")
 
-            ToolbarButton(systemImage: model.stateSelectionMode ? "xmark" : "scope", text: model.stateSelectionMode ? "Cancel" : "Select") {
+            Button {
                 if model.stateSelectionMode {
                     model.stopSelectionMode()
                 } else {
                     model.startSelectionMode()
                 }
+            } label: {
+                Label(model.stateSelectionMode ? "Cancel" : "Select", systemImage: model.stateSelectionMode ? "xmark" : "scope")
             }
 
-            ToolbarButton(systemImage: "macwindow.badge.plus", text: "Frontmost") {
+            Button {
                 model.mark(model.dataWindows.first)
+            } label: {
+                Label("Frontmost", systemImage: "macwindow.badge.plus")
             }
             .keyboardShortcut("m")
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .labelStyle(.titleAndIcon)
+        .controlSize(.regular)
+        .buttonStyle(.bordered)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(.primary.opacity(0.08))
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(.primary.opacity(0.06))
         )
-        .shadow(color: .black.opacity(0.12), radius: 22, y: 10)
-    }
-}
-
-struct ToolbarButton: View {
-    let systemImage: String
-    let text: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Label(text, systemImage: systemImage)
-                .labelStyle(.titleAndIcon)
-                .font(.callout.weight(.medium))
-                .padding(.horizontal, 11)
-                .padding(.vertical, 8)
-        }
-        .buttonStyle(.plain)
-        .background(.thinMaterial)
-        .clipShape(Capsule())
-        .overlay(
-            Capsule()
-                .stroke(.primary.opacity(0.08))
-        )
-    }
-}
-
-struct StatusPill: View {
-    let systemImage: String
-    let text: String
-
-    var body: some View {
-        Label(text, systemImage: systemImage)
-            .font(.callout.weight(.medium))
-            .foregroundStyle(.primary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(Color.accentColor.opacity(0.14))
-            .clipShape(Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(Color.accentColor.opacity(0.28))
-            )
     }
 }
 
@@ -375,15 +338,14 @@ struct StatusToast: View {
     var body: some View {
         Label(text, systemImage: "checkmark.circle.fill")
             .font(.callout.weight(.medium))
-            .padding(.horizontal, 13)
-            .padding(.vertical, 9)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .background(.regularMaterial)
             .clipShape(Capsule())
             .overlay(
                 Capsule()
-                    .stroke(Color.accentColor.opacity(0.24))
+                    .stroke(.primary.opacity(0.08))
             )
-            .shadow(color: .black.opacity(0.14), radius: 18, y: 8)
     }
 }
 
@@ -392,18 +354,8 @@ struct WindowListPane: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Open Windows")
-                    .font(.headline)
-                Spacer()
-                Text("\(model.dataWindows.count)")
-                    .font(.callout.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 4)
-                    .background(.thinMaterial)
-                    .clipShape(Capsule())
-            }
+            Text("Windows")
+                .font(.headline)
 
             ScrollView {
                 LazyVStack(spacing: 4) {
@@ -421,14 +373,8 @@ struct WindowListPane: View {
                         }
                     }
                 }
-                .padding(6)
+                .padding(.vertical, 2)
             }
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(.primary.opacity(0.06))
-            )
         }
     }
 }
@@ -440,42 +386,21 @@ struct WindowRow: View {
 
     var body: some View {
         Button(action: onClick) {
-            HStack(spacing: 12) {
-                Image(systemName: "macwindow")
-                    .font(.title3)
-                    .foregroundStyle(stateActive ? Color.accentColor : .secondary)
-                    .frame(width: 28)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(window.app)
+                    .font(.callout)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text(window.app)
-                            .font(.callout.weight(.semibold))
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                        Text("ID \(window.windowId)")
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Text(window.title.isEmpty ? "Untitled window" : window.title)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-
-                    Text("\(window.bounds.width) x \(window.bounds.height)")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.tertiary)
-                }
-
-                Spacer()
-
-                Image(systemName: "doc.on.doc")
+                Text(window.title.isEmpty ? "Untitled window" : window.title)
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                    .opacity(stateActive ? 1 : 0)
+                    .lineLimit(1)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 9)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -492,38 +417,24 @@ struct PreviewPane: View {
     let window: WindowRecord?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("Preview")
-                    .font(.headline)
-                Spacer()
-                if let window {
-                    Text(window.app)
-                        .font(.callout.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(.thinMaterial)
-                        .clipShape(Capsule())
-                }
-            }
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Preview")
+                .font(.headline)
 
             if let window {
                 PreviewView(window: window)
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(window.app)
+                        .font(.callout.weight(.semibold))
                     Text(window.title.isEmpty ? "Untitled window" : window.title)
-                        .font(.title3.weight(.semibold))
-                        .lineLimit(2)
-                    Text("Click the window row to copy a target.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
+                        .lineLimit(2)
                 }
             } else {
-                ContentUnavailableView("Choose a window", systemImage: "macwindow", description: Text("Hover or click a row to preview it."))
+                ContentUnavailableView("Choose a window", systemImage: "macwindow")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(.thinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             }
 
             Spacer()
@@ -539,20 +450,15 @@ struct PreviewView: View {
             Image(nsImage: image)
                 .resizable()
                 .scaledToFit()
-                .frame(maxWidth: .infinity, maxHeight: 440)
-                .padding(10)
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .frame(maxWidth: .infinity, maxHeight: 360)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .stroke(.primary.opacity(0.08))
                 )
-                .shadow(color: .black.opacity(0.18), radius: 28, y: 14)
         } else {
-            ContentUnavailableView("No Preview", systemImage: "eye.slash", description: Text("Screen Recording permission may be required."))
+            ContentUnavailableView("No Preview", systemImage: "eye.slash")
                 .frame(maxWidth: .infinity, minHeight: 320)
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         }
     }
 }
