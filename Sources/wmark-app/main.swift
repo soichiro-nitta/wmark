@@ -192,6 +192,7 @@ final class AppModel: ObservableObject {
     @Published var stateCopiedText = ""
     @Published var stateSelectionMode = false
     @Published var stateHighlightedWindow: WindowRecord?
+    @Published var stateSpaceRefreshing = false
     @Published var dataSpaceTitle = currentSpaceSnapshot()?.title ?? "wmark"
     @Published var dataTargetIds: [WindowId: String] = [:]
 
@@ -200,6 +201,7 @@ final class AppModel: ObservableObject {
     private var windowOverlay: NSWindow?
     private var observerSpace: NSObjectProtocol?
     private var taskToastDismiss: DispatchWorkItem?
+    private var taskSpaceRefresh: DispatchWorkItem?
     private var stateSpaceSnapshot = currentSpaceSnapshot()
 
     init() {
@@ -229,17 +231,33 @@ final class AppModel: ObservableObject {
     }
 
     private func refreshSpaceStateAfterSpaceChange() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-            self.refreshSpaceState(force: true)
+        taskSpaceRefresh?.cancel()
+        stateSpaceRefreshing = true
+        refreshSpaceStateWhenReady(previous: stateSpaceSnapshot, attemptsRemaining: 8)
+    }
+
+    private func refreshSpaceStateWhenReady(previous snapshotPrevious: SpaceSnapshot?, attemptsRemaining: Int) {
+        let snapshotCurrent = currentSpaceSnapshot()
+
+        if snapshotCurrent != snapshotPrevious || attemptsRemaining <= 0 {
+            withAnimation(.easeInOut(duration: 0.18)) {
+                refreshSpaceState(force: true, snapshot: snapshotCurrent)
+                stateSpaceRefreshing = false
+            }
+        } else {
+            let taskRefresh = DispatchWorkItem { [weak self] in
+                self?.refreshSpaceStateWhenReady(previous: snapshotPrevious, attemptsRemaining: attemptsRemaining - 1)
+            }
+
+            taskSpaceRefresh = taskRefresh
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: taskRefresh)
         }
     }
 
-    private func refreshSpaceState(force: Bool) {
-        let valueSnapshot = currentSpaceSnapshot()
-
-        if force || valueSnapshot != stateSpaceSnapshot {
-            stateSpaceSnapshot = valueSnapshot
-            dataSpaceTitle = valueSnapshot?.title ?? "wmark"
+    private func refreshSpaceState(force: Bool, snapshot: SpaceSnapshot? = currentSpaceSnapshot()) {
+        if force || snapshot != stateSpaceSnapshot {
+            stateSpaceSnapshot = snapshot
+            dataSpaceTitle = snapshot?.title ?? "wmark"
             dataWindows = scanWindowsForApp()
             syncTargetIds()
         }
@@ -416,11 +434,21 @@ struct AppToolbar: View {
                 .frame(width: 72, height: 24)
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(model.stateSelectionMode ? "Click a window" : model.dataSpaceTitle)
-                .font(.headline)
-                .fontWeight(.regular)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            HStack(spacing: 6) {
+                if model.stateSpaceRefreshing {
+                    ProgressView()
+                        .controlSize(.small)
+                        .scaleEffect(0.62)
+                        .frame(width: 12, height: 12)
+                }
+
+                Text(model.stateSelectionMode ? "Click a window" : model.dataSpaceTitle)
+                    .font(.headline)
+                    .fontWeight(.regular)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .animation(.easeInOut(duration: 0.18), value: model.stateSpaceRefreshing)
 
             HStack(spacing: 6) {
                 ToolbarIconButton(systemImage: "arrow.clockwise", help: "Scan") {
