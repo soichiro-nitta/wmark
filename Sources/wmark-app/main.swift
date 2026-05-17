@@ -436,7 +436,7 @@ struct AppToolbar: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
-        HStack(spacing: 10) {
+        ZStack {
             HStack(spacing: 10) {
                 WindowControlButton(color: .red) {
                     NSApplication.shared.keyWindow?.close()
@@ -450,36 +450,34 @@ struct AppToolbar: View {
                     NSApplication.shared.keyWindow?.zoom(nil)
                 }
             }
-            .frame(width: 84, alignment: .leading)
-
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(model.stateSelectionMode ? "Click a window" : model.dataSpaceTitle)
                 .font(.headline.weight(.medium))
                 .foregroundStyle(model.stateSelectionMode ? .secondary : .primary)
                 .lineLimit(1)
 
-            Spacer()
-
-            Button {
-                model.scan()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-            }
-            .keyboardShortcut("r")
-            .help("Scan")
-
-            Button {
-                if model.stateSelectionMode {
-                    model.stopSelectionMode()
-                } else {
-                    model.startSelectionMode()
+            HStack(spacing: 14) {
+                Button {
+                    model.scan()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
                 }
-            } label: {
-                Image(systemName: model.stateSelectionMode ? "xmark" : "scope")
-            }
-            .help(model.stateSelectionMode ? "Cancel" : "Select")
+                .keyboardShortcut("r")
+                .help("Scan")
 
+                Button {
+                    if model.stateSelectionMode {
+                        model.stopSelectionMode()
+                    } else {
+                        model.startSelectionMode()
+                    }
+                } label: {
+                    Image(systemName: model.stateSelectionMode ? "xmark" : "scope")
+                }
+                .help(model.stateSelectionMode ? "Cancel" : "Select")
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .controlSize(.regular)
         .buttonStyle(.plain)
