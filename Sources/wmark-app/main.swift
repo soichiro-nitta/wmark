@@ -8,6 +8,11 @@ import UniformTypeIdentifiers
 
 typealias WindowId = CGWindowID
 
+struct SpaceSnapshot: Equatable {
+    let id: Int
+    let title: String
+}
+
 struct Bounds: Codable {
     let x: Int
     let y: Int
@@ -283,23 +288,43 @@ final class AppModel: ObservableObject {
     @Published var stateCopiedText = ""
     @Published var stateSelectionMode = false
     @Published var stateHighlightedWindow: WindowRecord?
-    @Published var dataSpaceTitle = currentSpaceTitle() ?? "wmark"
+    @Published var dataSpaceTitle = currentSpaceSnapshot()?.title ?? "wmark"
 
     private var monitorMouseMoved: Any?
     private var monitorMouseDown: Any?
     private var windowOverlay: NSWindow?
+    private var timerSpace: Timer?
+    private var stateSpaceSnapshot = currentSpaceSnapshot()
 
     init() {
         dataWindows = scanWindowsForApp()
+        startSpaceTracking()
     }
 
     func scan() {
-        refreshSpaceTitle()
-        dataWindows = scanWindowsForApp()
+        refreshSpaceState(force: true)
     }
 
     func refreshSpaceTitle() {
-        dataSpaceTitle = currentSpaceTitle() ?? "wmark"
+        refreshSpaceState(force: false)
+    }
+
+    private func startSpaceTracking() {
+        timerSpace = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.refreshSpaceState(force: false)
+            }
+        }
+    }
+
+    private func refreshSpaceState(force: Bool) {
+        let valueSnapshot = currentSpaceSnapshot()
+
+        if force || valueSnapshot != stateSpaceSnapshot {
+            stateSpaceSnapshot = valueSnapshot
+            dataSpaceTitle = valueSnapshot?.title ?? "wmark"
+            dataWindows = scanWindowsForApp()
+        }
     }
 
     func mark(_ window: WindowRecord?) {
@@ -647,8 +672,8 @@ func scanWindowsForApp() -> [WindowRecord] {
     .filter { $0.layer == 0 && !$0.title.isEmpty }
 }
 
-func currentSpaceTitle() -> String? {
-    var valueTitle: String?
+func currentSpaceSnapshot() -> SpaceSnapshot? {
+    var valueSnapshot: SpaceSnapshot?
     let urlSpaces = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Preferences/com.apple.spaces.plist")
 
@@ -658,25 +683,28 @@ func currentSpaceTitle() -> String? {
         let dataManagement = dataConfiguration["Management Data"] as? [String: Any],
         let dataMonitors = dataManagement["Monitors"] as? [[String: Any]]
     {
-        for dataMonitor in dataMonitors where valueTitle == nil {
+        for dataMonitor in dataMonitors where valueSnapshot == nil {
             if
                 let dataCurrentSpace = dataMonitor["Current Space"] as? [String: Any],
                 let idCurrent = dataCurrentSpace["ManagedSpaceID"] as? Int,
                 let dataSpaces = dataMonitor["Spaces"] as? [[String: Any]]
             {
-                for indexSpace in dataSpaces.indices where valueTitle == nil {
+                for indexSpace in dataSpaces.indices where valueSnapshot == nil {
                     if
                         let idSpace = dataSpaces[indexSpace]["ManagedSpaceID"] as? Int,
                         idSpace == idCurrent
                     {
-                        valueTitle = localizedDesktopTitle(indexSpace + 1)
+                        valueSnapshot = SpaceSnapshot(
+                            id: idCurrent,
+                            title: localizedDesktopTitle(indexSpace + 1)
+                        )
                     }
                 }
             }
         }
     }
 
-    return valueTitle
+    return valueSnapshot
 }
 
 func localizedDesktopTitle(_ number: Int) -> String {
