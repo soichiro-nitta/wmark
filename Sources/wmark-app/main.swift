@@ -96,13 +96,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if windowMain == nil {
             windowMain = AppWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 400, height: 560),
-                styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
+                styleMask: [.titled, .resizable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
             windowMain?.title = "wmark"
             windowMain?.titleVisibility = .hidden
             windowMain?.titlebarAppearsTransparent = true
+            windowMain?.standardWindowButton(.closeButton)?.isHidden = true
             windowMain?.standardWindowButton(.miniaturizeButton)?.isHidden = true
             windowMain?.standardWindowButton(.zoomButton)?.isHidden = true
             windowMain?.minSize = NSSize(width: 280, height: 360)
@@ -110,7 +111,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 rootView: ContentView(model: model)
                     .frame(minWidth: 280, minHeight: 360)
             )
-            windowMain?.installTrafficButtonOverlay()
             windowMain?.center()
         }
 
@@ -131,61 +131,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 final class AppWindow: NSWindow {
-    private let viewTrafficButtons = TrafficButtonOverlayView()
-
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
-
-    override func setFrame(_ frameRect: NSRect, display flag: Bool) {
-        super.setFrame(frameRect, display: flag)
-        layoutTrafficButtonOverlay()
-    }
-
-    func installTrafficButtonOverlay() {
-        if let buttonClose = standardWindowButton(.closeButton), let contentView {
-            buttonClose.removeFromSuperview()
-            viewTrafficButtons.buttonClose = buttonClose
-            contentView.addSubview(viewTrafficButtons)
-            layoutTrafficButtonOverlay()
-        }
-    }
-
-    private func layoutTrafficButtonOverlay() {
-        if let contentView {
-            viewTrafficButtons.frame = NSRect(
-                x: 14,
-                y: contentView.bounds.height - 30,
-                width: 58,
-                height: 18
-            )
-        }
-    }
-}
-
-final class TrafficButtonOverlayView: NSView {
-    weak var buttonClose: NSButton? {
-        didSet {
-            if let buttonClose {
-                addSubview(buttonClose)
-                needsLayout = true
-            }
-        }
-    }
-
-    override func layout() {
-        super.layout()
-        buttonClose?.setFrameOrigin(NSPoint(x: 0, y: 1))
-    }
-
-    override func draw(_ dirtyRect: NSRect) {
-        super.draw(dirtyRect)
-
-        NSColor.secondaryLabelColor.withAlphaComponent(0.34).setFill()
-
-        for valueX in [22.0, 44.0] {
-            NSBezierPath(ovalIn: NSRect(x: valueX, y: 3, width: 12, height: 12)).fill()
-        }
-    }
 }
 
 final class ResizeCursorHostingView<Content: View>: NSHostingView<Content> {
@@ -521,9 +468,8 @@ struct AppToolbar: View {
 
     var body: some View {
         ZStack {
-            Color.clear
-                .frame(width: 28, height: 24)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            TrafficButtons()
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 6) {
                 if model.stateSpaceRefreshing {
@@ -593,6 +539,42 @@ struct ToolbarIconButton: View {
         .onHover { valueHovering in
             stateHovering = valueHovering
         }
+    }
+}
+
+struct TrafficButtons: View {
+    @State private var stateHoveringClose = false
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Button {
+                NSApplication.shared.keyWindow?.close()
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(Color.red.opacity(0.88))
+                        .frame(width: 13, height: 13)
+
+                    if stateHoveringClose {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundStyle(.black.opacity(0.55))
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .onHover { stateHoveringClose = $0 }
+
+            Circle()
+                .fill(Color.secondary.opacity(0.36))
+                .frame(width: 13, height: 13)
+
+            Circle()
+                .fill(Color.secondary.opacity(0.36))
+                .frame(width: 13, height: 13)
+        }
+        .padding(.leading, 1)
+        .frame(width: 70, height: 24, alignment: .leading)
     }
 }
 
