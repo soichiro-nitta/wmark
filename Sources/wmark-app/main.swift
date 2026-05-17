@@ -88,16 +88,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showMainWindow() {
         if windowMain == nil {
-            windowMain = NSWindow(
+            windowMain = BorderlessResizeWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 400, height: 560),
                 styleMask: [.borderless, .resizable],
                 backing: .buffered,
                 defer: false
             )
             windowMain?.title = "wmark"
+            windowMain?.minSize = NSSize(width: 280, height: 360)
             windowMain?.contentView = NSHostingView(
                 rootView: ContentView(model: model)
-                    .frame(minWidth: 400, minHeight: 560)
+                    .frame(minWidth: 280, minHeight: 360)
             )
             windowMain?.center()
         }
@@ -116,6 +117,110 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.makeKeyAndOrderFront(nil)
         }
     }
+}
+
+final class BorderlessResizeWindow: NSWindow {
+    private let valueResizeMargin: CGFloat = 8
+
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+
+    override func mouseDown(with event: NSEvent) {
+        let valueEdge = resizeEdge(at: event.locationInWindow)
+
+        if valueEdge.isEmpty {
+            super.mouseDown(with: event)
+        } else {
+            resizeWindow(from: event, edge: valueEdge)
+        }
+    }
+
+    private func resizeEdge(at point: NSPoint) -> ResizeEdge {
+        var valueEdge: ResizeEdge = []
+
+        if point.x <= valueResizeMargin {
+            valueEdge.insert(.minX)
+        }
+
+        if frame.width - point.x <= valueResizeMargin {
+            valueEdge.insert(.maxX)
+        }
+
+        if point.y <= valueResizeMargin {
+            valueEdge.insert(.minY)
+        }
+
+        if frame.height - point.y <= valueResizeMargin {
+            valueEdge.insert(.maxY)
+        }
+
+        return valueEdge
+    }
+
+    private func resizeWindow(from event: NSEvent, edge: ResizeEdge) {
+        let pointStart = NSEvent.mouseLocation
+        let frameStart = frame
+
+        while NSEvent.pressedMouseButtons & 1 == 1 {
+            if let eventNext = nextEvent(matching: [.leftMouseDragged, .leftMouseUp]) {
+                if eventNext.type == .leftMouseDragged {
+                    setFrame(
+                        resizedFrame(from: frameStart, pointStart: pointStart, pointCurrent: NSEvent.mouseLocation, edge: edge),
+                        display: true
+                    )
+                }
+            }
+        }
+    }
+
+    private func resizedFrame(from frameStart: NSRect, pointStart: NSPoint, pointCurrent: NSPoint, edge: ResizeEdge) -> NSRect {
+        var frameNext = frameStart
+        let valueDeltaX = pointCurrent.x - pointStart.x
+        let valueDeltaY = pointCurrent.y - pointStart.y
+
+        if edge.contains(.minX) {
+            frameNext.origin.x = frameStart.origin.x + valueDeltaX
+            frameNext.size.width = frameStart.size.width - valueDeltaX
+        }
+
+        if edge.contains(.maxX) {
+            frameNext.size.width = frameStart.size.width + valueDeltaX
+        }
+
+        if edge.contains(.minY) {
+            frameNext.origin.y = frameStart.origin.y + valueDeltaY
+            frameNext.size.height = frameStart.size.height - valueDeltaY
+        }
+
+        if edge.contains(.maxY) {
+            frameNext.size.height = frameStart.size.height + valueDeltaY
+        }
+
+        if frameNext.width < minSize.width {
+            if edge.contains(.minX) {
+                frameNext.origin.x = frameStart.maxX - minSize.width
+            }
+            frameNext.size.width = minSize.width
+        }
+
+        if frameNext.height < minSize.height {
+            if edge.contains(.minY) {
+                frameNext.origin.y = frameStart.maxY - minSize.height
+            }
+            frameNext.size.height = minSize.height
+        }
+
+        return frameNext
+    }
+}
+
+struct ResizeEdge: OptionSet {
+    let rawValue: Int
+
+    static let minX = ResizeEdge(rawValue: 1 << 0)
+    static let maxX = ResizeEdge(rawValue: 1 << 1)
+    static let minY = ResizeEdge(rawValue: 1 << 2)
+    static let maxY = ResizeEdge(rawValue: 1 << 3)
 }
 
 final class ShortcutManager {
@@ -307,12 +412,12 @@ struct ContentView: View {
                 WindowListPane(model: model)
             }
             .padding(.horizontal, 14)
-            .padding(.top, 18)
+            .padding(.top, 4)
             .padding(.bottom, 14)
 
             if !model.stateCopiedText.isEmpty {
                 StatusToast(text: model.stateCopiedText)
-                    .padding(.top, 14)
+                    .padding(.top, 4)
                     .padding(.trailing, 16)
             }
         }
@@ -379,7 +484,7 @@ struct AppToolbar: View {
         .controlSize(.regular)
         .buttonStyle(.plain)
         .font(.title3)
-        .frame(height: 36)
+        .frame(height: 30)
     }
 }
 
