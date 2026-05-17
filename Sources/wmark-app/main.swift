@@ -677,7 +677,7 @@ func localizedDesktopTitle(_ number: Int) -> String {
     let valueLanguage = Locale.preferredLanguages.first ?? Locale.current.identifier
 
     if valueLanguage.hasPrefix("ja") {
-        valueTitle = "デスクトップ \(number)"
+        valueTitle = "デスクトップ\(number)"
     }
 
     return valueTitle
