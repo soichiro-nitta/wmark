@@ -453,8 +453,9 @@ struct AppToolbar: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(model.stateSelectionMode ? "Click a window" : model.dataSpaceTitle)
-                .font(.headline.weight(.medium))
-                .foregroundStyle(model.stateSelectionMode ? .secondary : .primary)
+                .font(.headline)
+                .fontWeight(.regular)
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
 
             HStack(spacing: 14) {
@@ -477,12 +478,21 @@ struct AppToolbar: View {
                 }
                 .help(model.stateSelectionMode ? "Cancel" : "Select")
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(.thinMaterial)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(.primary.opacity(0.12))
+            )
+            .shadow(color: .black.opacity(0.2), radius: 8, y: 3)
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .controlSize(.regular)
         .buttonStyle(.plain)
         .font(.title3)
-        .frame(height: 30)
+        .frame(height: 42)
     }
 }
 
@@ -494,7 +504,7 @@ struct WindowControlButton: View {
         Button(action: action) {
             Circle()
                 .fill(color)
-                .frame(width: 12, height: 12)
+                .frame(width: 13, height: 13)
         }
         .buttonStyle(.plain)
     }
