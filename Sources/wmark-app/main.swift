@@ -543,7 +543,7 @@ struct AppToolbar: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
 
-            HStack(spacing: 10) {
+            HStack(spacing: 6) {
                 ToolbarIconButton(systemImage: "arrow.clockwise", help: "Scan") {
                     model.scan()
                 }
@@ -557,8 +557,8 @@ struct AppToolbar: View {
                     }
                 }
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 7)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 5)
             .background(.thinMaterial)
             .clipShape(Capsule())
             .overlay(
