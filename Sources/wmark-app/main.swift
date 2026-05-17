@@ -316,7 +316,7 @@ final class AppModel: ObservableObject {
     private var monitorMouseMoved: Any?
     private var monitorMouseDown: Any?
     private var windowOverlay: NSWindow?
-    private var timerSpace: Timer?
+    private var observerSpace: NSObjectProtocol?
     private var stateSpaceSnapshot = currentSpaceSnapshot()
 
     init() {
@@ -333,10 +333,20 @@ final class AppModel: ObservableObject {
     }
 
     private func startSpaceTracking() {
-        timerSpace = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        observerSpace = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
             DispatchQueue.main.async {
-                self?.refreshSpaceState(force: false)
+                self?.refreshSpaceStateAfterSpaceChange()
             }
+        }
+    }
+
+    private func refreshSpaceStateAfterSpaceChange() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            self.refreshSpaceState(force: true)
         }
     }
 
