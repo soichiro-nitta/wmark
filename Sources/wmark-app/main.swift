@@ -517,8 +517,8 @@ struct AppToolbar: View {
                     }
                 }
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 3)
             .background(.thinMaterial)
             .clipShape(Capsule())
             .overlay(
@@ -545,8 +545,8 @@ struct ToolbarIconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .frame(width: 24, height: 24)
-                .background(stateHovering ? Color.primary.opacity(0.18) : Color.clear)
+                .frame(width: 28, height: 28)
+                .background(stateHovering ? Color.primary.opacity(0.13) : Color.clear)
                 .clipShape(Circle())
                 .animation(.easeOut(duration: 0.18), value: stateHovering)
         }
