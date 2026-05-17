@@ -517,10 +517,7 @@ struct WindowListPane: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Windows")
-                .font(.headline)
-
+        VStack(alignment: .leading, spacing: 0) {
             ScrollView {
                 LazyVStack(spacing: 4) {
                     ForEach(model.dataWindows) { window in
