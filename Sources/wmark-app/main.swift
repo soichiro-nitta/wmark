@@ -421,7 +421,7 @@ struct ContentView: View {
                     .padding(.trailing, 16)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }
 
