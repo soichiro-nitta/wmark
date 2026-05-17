@@ -55,7 +55,7 @@ struct WmarkApp: App {
     var body: some Scene {
         WindowGroup("wmark") {
             ContentView(model: appDelegate.model)
-                .frame(minWidth: 860, minHeight: 560)
+                .frame(minWidth: 440, minHeight: 560)
         }
         .commands {
             CommandGroup(replacing: .newItem) {}
@@ -258,13 +258,7 @@ struct ContentView: View {
             VStack(spacing: 12) {
                 AppToolbar(model: model)
 
-                HSplitView {
-                    WindowListPane(model: model)
-                        .frame(minWidth: 300, idealWidth: 340)
-
-                    PreviewPane(window: model.stateHoveredWindow ?? model.stateSelectedWindow)
-                        .frame(minWidth: 440)
-                }
+                WindowListPane(model: model)
             }
             .padding(14)
 
@@ -385,64 +379,40 @@ struct WindowRow: View {
     let onClick: () -> Void
 
     var body: some View {
-        Button(action: onClick) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(window.app)
-                    .font(.callout)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                Text(window.title.isEmpty ? "Untitled window" : window.title)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 7)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .background(stateActive ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(Color.clear))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(stateActive ? Color.accentColor.opacity(0.18) : Color.clear)
-        )
-    }
-}
-
-struct PreviewPane: View {
-    let window: WindowRecord?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Preview")
-                .font(.headline)
-
-            if let window {
-                PreviewView(window: window)
-
-                VStack(alignment: .leading, spacing: 4) {
+        ZStack(alignment: .trailing) {
+            Button(action: onClick) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(window.app)
-                        .font(.callout.weight(.semibold))
+                        .font(.callout)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
                     Text(window.title.isEmpty ? "Untitled window" : window.title)
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                        .lineLimit(1)
                 }
-            } else {
-                ContentUnavailableView("Choose a window", systemImage: "macwindow")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 7)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
+            .buttonStyle(.plain)
+            .background(stateActive ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(Color.clear))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            Spacer()
+            if stateActive {
+                HoverPreview(window: window)
+                    .frame(width: 220, height: 140)
+                    .offset(x: 232)
+                    .zIndex(1)
+            }
         }
     }
 }
 
-struct PreviewView: View {
+struct HoverPreview: View {
     let window: WindowRecord
 
     var body: some View {
@@ -450,15 +420,20 @@ struct PreviewView: View {
             Image(nsImage: image)
                 .resizable()
                 .scaledToFit()
-                .frame(maxWidth: .infinity, maxHeight: 360)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .padding(6)
+                .background(.regularMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke(.primary.opacity(0.08))
                 )
         } else {
-            ContentUnavailableView("No Preview", systemImage: "eye.slash")
-                .frame(maxWidth: .infinity, minHeight: 320)
+            Image(systemName: "eye.slash")
+                .font(.title)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.regularMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 }
