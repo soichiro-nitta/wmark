@@ -102,6 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
             windowMain?.title = "wmark"
             windowMain?.minSize = NSSize(width: 280, height: 360)
+            windowMain?.acceptsMouseMovedEvents = true
             windowMain?.contentView = NSHostingView(
                 rootView: ContentView(model: model)
                     .frame(minWidth: 280, minHeight: 360)
@@ -126,18 +127,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 final class BorderlessResizeWindow: NSWindow {
-    private let valueResizeMargin: CGFloat = 8
+    private let valueResizeMargin: CGFloat = 10
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 
-    override func mouseDown(with event: NSEvent) {
+    override func sendEvent(_ event: NSEvent) {
         let valueEdge = resizeEdge(at: event.locationInWindow)
 
-        if valueEdge.isEmpty {
-            super.mouseDown(with: event)
+        if event.type == .leftMouseDown && !valueEdge.isEmpty {
+            resizeWindow(edge: valueEdge)
         } else {
-            resizeWindow(from: event, edge: valueEdge)
+            if event.type == .mouseMoved {
+                updateCursor(for: valueEdge)
+            }
+
+            super.sendEvent(event)
         }
     }
 
@@ -163,13 +168,19 @@ final class BorderlessResizeWindow: NSWindow {
         return valueEdge
     }
 
-    private func resizeWindow(from event: NSEvent, edge: ResizeEdge) {
+    private func resizeWindow(edge: ResizeEdge) {
         let pointStart = NSEvent.mouseLocation
         let frameStart = frame
 
-        while NSEvent.pressedMouseButtons & 1 == 1 {
-            if let eventNext = nextEvent(matching: [.leftMouseDragged, .leftMouseUp]) {
-                if eventNext.type == .leftMouseDragged {
+        var stateDragging = true
+
+        while stateDragging {
+            if let eventNext = nextEvent(matching: [.leftMouseDragged, .leftMouseUp], until: .distantFuture, inMode: .eventTracking, dequeue: true) {
+                if eventNext.type == .leftMouseUp {
+                    stateDragging = false
+                }
+
+                if stateDragging {
                     setFrame(
                         resizedFrame(from: frameStart, pointStart: pointStart, pointCurrent: NSEvent.mouseLocation, edge: edge),
                         display: true
@@ -217,6 +228,18 @@ final class BorderlessResizeWindow: NSWindow {
         }
 
         return frameNext
+    }
+
+    private func updateCursor(for edge: ResizeEdge) {
+        if edge.isEmpty {
+            NSCursor.arrow.set()
+        } else if edge == [.minX] || edge == [.maxX] {
+            NSCursor.resizeLeftRight.set()
+        } else if edge == [.minY] || edge == [.maxY] {
+            NSCursor.resizeUpDown.set()
+        } else {
+            NSCursor.crosshair.set()
+        }
     }
 }
 
