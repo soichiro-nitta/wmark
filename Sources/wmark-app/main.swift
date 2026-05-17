@@ -467,15 +467,53 @@ struct ResizeCursorZone: View {
     let cursor: NSCursor
 
     var body: some View {
-        Color.clear
-            .contentShape(Rectangle())
-            .onHover { stateHovering in
-                if stateHovering {
-                    cursor.push()
-                } else {
-                    NSCursor.pop()
-                }
-            }
+        CursorRectView(cursor: cursor)
+    }
+}
+
+struct CursorRectView: NSViewRepresentable {
+    let cursor: NSCursor
+
+    func makeNSView(context: Context) -> CursorRectNSView {
+        CursorRectNSView(cursor: cursor)
+    }
+
+    func updateNSView(_ view: CursorRectNSView, context: Context) {
+        view.cursor = cursor
+        view.window?.invalidateCursorRects(for: view)
+    }
+}
+
+final class CursorRectNSView: NSView {
+    var cursor: NSCursor {
+        didSet {
+            window?.invalidateCursorRects(for: self)
+        }
+    }
+
+    init(cursor: NSCursor) {
+        self.cursor = cursor
+        super.init(frame: .zero)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        addCursorRect(bounds, cursor: cursor)
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        window?.invalidateCursorRects(for: self)
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        window?.invalidateCursorRects(for: self)
     }
 }
 
