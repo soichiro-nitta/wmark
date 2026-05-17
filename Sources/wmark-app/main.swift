@@ -462,7 +462,7 @@ struct AppToolbar: View {
 
     var body: some View {
         ZStack {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 WindowControlButton(color: .red) {
                     NSApplication.shared.keyWindow?.close()
                 }
@@ -483,7 +483,7 @@ struct AppToolbar: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
 
-            HStack(spacing: 14) {
+            HStack(spacing: 10) {
                 Button {
                     model.scan()
                 } label: {
@@ -503,7 +503,7 @@ struct AppToolbar: View {
                 }
                 .help(model.stateSelectionMode ? "Cancel" : "Select")
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 9)
             .padding(.vertical, 7)
             .background(.thinMaterial)
             .clipShape(Capsule())
