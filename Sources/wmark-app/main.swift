@@ -88,6 +88,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.collectionBehavior.insert(.fullScreenAuxiliary)
             window.collectionBehavior.insert(.stationary)
             window.hidesOnDeactivate = false
+            window.isOpaque = false
+            window.backgroundColor = .clear
             window.orderFrontRegardless()
         }
     }
@@ -271,6 +273,11 @@ struct ContentView: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+
+            Color.black.opacity(0.34)
+
             VStack(spacing: 12) {
                 AppToolbar(model: model)
 
@@ -284,7 +291,6 @@ struct ContentView: View {
                     .padding(.trailing, 16)
             }
         }
-        .background(.regularMaterial)
     }
 }
 
@@ -333,11 +339,11 @@ struct AppToolbar: View {
         .buttonStyle(.bordered)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
+        .background(.thinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(.primary.opacity(0.06))
+                .stroke(.white.opacity(0.08))
         )
     }
 }
@@ -350,11 +356,11 @@ struct StatusToast: View {
             .font(.callout.weight(.medium))
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(.regularMaterial)
+            .background(.thinMaterial)
             .clipShape(Capsule())
             .overlay(
                 Capsule()
-                    .stroke(.primary.opacity(0.08))
+                    .stroke(.white.opacity(0.1))
             )
     }
 }
@@ -414,9 +420,9 @@ struct WindowRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
-            .buttonStyle(.plain)
-            .background(stateActive ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(Color.clear))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .buttonStyle(.plain)
+        .background(stateActive ? AnyShapeStyle(.thinMaterial) : AnyShapeStyle(Color.clear))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
             if stateActive {
                 HoverPreview(window: window)
@@ -437,7 +443,7 @@ struct HoverPreview: View {
                 .resizable()
                 .scaledToFit()
                 .padding(6)
-                .background(.regularMaterial)
+                .background(.thinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
