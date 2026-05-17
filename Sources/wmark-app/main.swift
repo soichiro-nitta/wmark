@@ -96,11 +96,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if windowMain == nil {
             windowMain = BorderlessResizeWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 400, height: 560),
-                styleMask: [.borderless, .resizable],
+                styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
             windowMain?.title = "wmark"
+            windowMain?.titleVisibility = .hidden
+            windowMain?.titlebarAppearsTransparent = true
             windowMain?.minSize = NSSize(width: 280, height: 360)
             windowMain?.acceptsMouseMovedEvents = true
             windowMain?.contentView = NSHostingView(
@@ -531,19 +533,8 @@ struct AppToolbar: View {
 
     var body: some View {
         ZStack {
-            HStack(spacing: 8) {
-                WindowControlButton(color: .red) {
-                    NSApplication.shared.keyWindow?.close()
-                }
-
-                WindowControlButton(color: .secondary.opacity(0.45)) {
-                    NSApplication.shared.keyWindow?.miniaturize(nil)
-                }
-
-                WindowControlButton(color: .secondary.opacity(0.45)) {
-                    NSApplication.shared.keyWindow?.zoom(nil)
-                }
-            }
+            Color.clear
+                .frame(width: 72, height: 24)
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(model.stateSelectionMode ? "Click a window" : model.dataSpaceTitle)
@@ -603,20 +594,6 @@ struct ToolbarIconButton: View {
         .onHover { valueHovering in
             stateHovering = valueHovering
         }
-    }
-}
-
-struct WindowControlButton: View {
-    let color: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Circle()
-                .fill(color)
-                .frame(width: 13, height: 13)
-        }
-        .buttonStyle(.plain)
     }
 }
 
