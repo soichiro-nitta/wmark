@@ -16,8 +16,11 @@ swift build
 .build/debug/wmark chrome-front
 .build/debug/wmark thumbnail <windowId>
 .build/debug/wmark mark-frontmost
+.build/debug/wmark queue
+.build/debug/wmark resolve <targetId>
 ```
 
 `mark-frontmost` writes short-lived local target records under `~/.codex/window-targets/` and copies `target: WTG-xxxx` to the pasteboard.
+`resolve` revalidates a saved target against the current window state and stops unless one current window matches the saved `windowId + pid + app`.
 
 Window thumbnails and target queues may contain sensitive local window data. Keep them outside Git.

@@ -42,10 +42,19 @@ struct TargetRecord: Codable {
     let status: String
 }
 
+struct ResolveRecord: Codable {
+    let id: String
+    let status: String
+    let reason: String
+    let target: TargetRecord?
+    let matches: [WindowRecord]
+}
+
 let directoryTargets = FileManager.default.homeDirectoryForCurrentUser
     .appendingPathComponent(".codex/window-targets", isDirectory: true)
 let directoryThumbs = directoryTargets.appendingPathComponent("thumbs", isDirectory: true)
 let fileQueue = directoryTargets.appendingPathComponent("queue.json")
+let intervalStale: TimeInterval = 60 * 60
 
 let encoderJson = JSONEncoder()
 encoderJson.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -63,6 +72,10 @@ case "thumbnail":
     runThumbnailCommand()
 case "mark-frontmost":
     runMarkFrontmostCommand()
+case "queue":
+    printJson(readTargets())
+case "resolve":
+    runResolveCommand()
 default:
     printUsage()
 }
@@ -179,6 +192,73 @@ func runMarkFrontmostCommand() {
     print("target: \(id)")
 }
 
+func runResolveCommand() {
+    guard CommandLine.arguments.count >= 3 else {
+        fputs("usage: wmark resolve <targetId>\n", stderr)
+        exit(2)
+    }
+
+    let id = CommandLine.arguments[2]
+    let result = resolveTarget(id: id)
+    printJson(result)
+
+    if result.status != "matched" {
+        exit(1)
+    }
+}
+
+func resolveTarget(id: String) -> ResolveRecord {
+    let targets = readTargets()
+    let target = targets.last { $0.id == id }
+    let windows = scanWindows()
+    var status = "missing"
+    var reason = "target id is not in queue"
+    var matches: [WindowRecord] = []
+
+    if let target {
+        let isExpired = isStale(target)
+        let isUsableStatus = target.status == "pending"
+        matches = windows.filter {
+            $0.windowId == target.windowId
+                && $0.pid == target.pid
+                && $0.app == target.app
+        }
+
+        if !isUsableStatus {
+            status = "used"
+            reason = "target status is \(target.status)"
+        }
+
+        if isUsableStatus && isExpired {
+            status = "stale"
+            reason = "target is older than \(Int(intervalStale / 60)) minutes"
+        }
+
+        if isUsableStatus && !isExpired && matches.isEmpty {
+            status = "stale"
+            reason = "saved window identity no longer exists"
+        }
+
+        if isUsableStatus && !isExpired && matches.count > 1 {
+            status = "ambiguous"
+            reason = "multiple windows matched the saved identity"
+        }
+
+        if isUsableStatus && !isExpired && matches.count == 1 {
+            status = "matched"
+            reason = "windowId, pid, and app matched"
+        }
+    }
+
+    return ResolveRecord(
+        id: id,
+        status: status,
+        reason: reason,
+        target: target,
+        matches: matches
+    )
+}
+
 func writeThumbnail(windowId: WindowId, id: String) -> URL? {
     try? FileManager.default.createDirectory(at: directoryThumbs, withIntermediateDirectories: true)
 
@@ -209,13 +289,27 @@ func writeThumbnail(windowId: WindowId, id: String) -> URL? {
 func appendTarget(_ target: TargetRecord) {
     try? FileManager.default.createDirectory(at: directoryTargets, withIntermediateDirectories: true)
 
-    let dataExisting = try? Data(contentsOf: fileQueue)
-    let targetsExisting = dataExisting.flatMap { try? decoderJson.decode([TargetRecord].self, from: $0) } ?? []
-    let dataNext = try? encoderJson.encode(targetsExisting + [target])
+    let dataNext = try? encoderJson.encode(readTargets() + [target])
 
     if let dataNext {
         try? dataNext.write(to: fileQueue, options: .atomic)
     }
+}
+
+func readTargets() -> [TargetRecord] {
+    let dataExisting = try? Data(contentsOf: fileQueue)
+    return dataExisting.flatMap { try? decoderJson.decode([TargetRecord].self, from: $0) } ?? []
+}
+
+func isStale(_ target: TargetRecord) -> Bool {
+    let formatter = ISO8601DateFormatter()
+    var stale = true
+
+    if let date = formatter.date(from: target.capturedAt) {
+        stale = Date().timeIntervalSince(date) > intervalStale
+    }
+
+    return stale
 }
 
 func copyToPasteboard(_ text: String) {
@@ -244,6 +338,8 @@ func printUsage() {
           wmark chrome-front
           wmark thumbnail <windowId>
           wmark mark-frontmost
+          wmark queue
+          wmark resolve <targetId>
         """
     )
 }
