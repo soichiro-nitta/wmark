@@ -129,8 +129,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 final class AppWindow: NSWindow {
+    private let valueResizeCursorMargin: CGFloat = 5
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .mouseMoved {
+            updateResizeCursor(at: event.locationInWindow)
+        }
+
+        super.sendEvent(event)
+    }
+
+    private func updateResizeCursor(at point: NSPoint) {
+        let stateNearLeft = point.x <= valueResizeCursorMargin
+        let stateNearRight = frame.width - point.x <= valueResizeCursorMargin
+        let stateNearBottom = point.y <= valueResizeCursorMargin
+        let stateNearTop = frame.height - point.y <= valueResizeCursorMargin
+
+        if stateNearLeft || stateNearRight {
+            NSCursor.resizeLeftRight.set()
+        } else if stateNearTop || stateNearBottom {
+            NSCursor.resizeUpDown.set()
+        } else {
+            NSCursor.arrow.set()
+        }
+    }
 }
 
 final class ShortcutManager {
