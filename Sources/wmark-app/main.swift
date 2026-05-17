@@ -402,9 +402,9 @@ struct ContentView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             Rectangle()
-                .fill(Color.black.opacity(0.68))
+                .fill(.thinMaterial)
 
-            Color.white.opacity(0.03)
+            Color.black.opacity(0.48)
 
             VStack(spacing: 12) {
                 AppToolbar(model: model)
