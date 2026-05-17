@@ -70,7 +70,7 @@ struct WmarkApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let model = AppModel()
-    private var windowMain: NSWindow?
+    private var windowMain: AppWindow?
     private var shortcut: ShortcutManager?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -103,7 +103,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             windowMain?.title = "wmark"
             windowMain?.titleVisibility = .hidden
             windowMain?.titlebarAppearsTransparent = true
-            windowMain?.standardWindowButton(.closeButton)?.setFrameOrigin(NSPoint(x: 14, y: 13))
             windowMain?.standardWindowButton(.miniaturizeButton)?.isHidden = true
             windowMain?.standardWindowButton(.zoomButton)?.isHidden = true
             windowMain?.minSize = NSSize(width: 280, height: 360)
@@ -111,6 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 rootView: ContentView(model: model)
                     .frame(minWidth: 280, minHeight: 360)
             )
+            windowMain?.installTrafficButtonOverlay()
             windowMain?.center()
         }
 
@@ -131,8 +131,61 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 final class AppWindow: NSWindow {
+    private let viewTrafficButtons = TrafficButtonOverlayView()
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+
+    override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        super.setFrame(frameRect, display: flag)
+        layoutTrafficButtonOverlay()
+    }
+
+    func installTrafficButtonOverlay() {
+        if let buttonClose = standardWindowButton(.closeButton), let contentView {
+            buttonClose.removeFromSuperview()
+            viewTrafficButtons.buttonClose = buttonClose
+            contentView.addSubview(viewTrafficButtons)
+            layoutTrafficButtonOverlay()
+        }
+    }
+
+    private func layoutTrafficButtonOverlay() {
+        if let contentView {
+            viewTrafficButtons.frame = NSRect(
+                x: 14,
+                y: contentView.bounds.height - 30,
+                width: 58,
+                height: 18
+            )
+        }
+    }
+}
+
+final class TrafficButtonOverlayView: NSView {
+    weak var buttonClose: NSButton? {
+        didSet {
+            if let buttonClose {
+                addSubview(buttonClose)
+                needsLayout = true
+            }
+        }
+    }
+
+    override func layout() {
+        super.layout()
+        buttonClose?.setFrameOrigin(NSPoint(x: 0, y: 1))
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+
+        NSColor.secondaryLabelColor.withAlphaComponent(0.34).setFill()
+
+        for valueX in [22.0, 44.0] {
+            NSBezierPath(ovalIn: NSRect(x: valueX, y: 3, width: 12, height: 12)).fill()
+        }
+    }
 }
 
 final class ResizeCursorHostingView<Content: View>: NSHostingView<Content> {
