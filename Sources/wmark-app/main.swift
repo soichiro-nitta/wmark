@@ -242,6 +242,7 @@ final class AppModel: ObservableObject {
     private var observerSpace: NSObjectProtocol?
     private var taskCopiedReset: DispatchWorkItem?
     private var taskSpaceRefresh: DispatchWorkItem?
+    private var dateSpaceRefreshStarted = Date.distantPast
     private var stateSpaceSnapshot = currentSpaceSnapshot()
 
     init() {
@@ -272,6 +273,7 @@ final class AppModel: ObservableObject {
 
     private func refreshSpaceStateAfterSpaceChange() {
         taskSpaceRefresh?.cancel()
+        dateSpaceRefreshStarted = Date()
         stateSpaceRefreshing = true
         refreshSpaceStateWhenReady(previous: stateSpaceSnapshot, attemptsRemaining: 8)
     }
@@ -281,10 +283,16 @@ final class AppModel: ObservableObject {
         let snapshotCurrent = currentSpaceSnapshot(matching: windowsCurrent)
 
         if snapshotCurrent != snapshotPrevious || attemptsRemaining <= 0 {
-            withAnimation(.easeInOut(duration: 0.18)) {
-                refreshSpaceState(force: true, snapshot: snapshotCurrent, windows: windowsCurrent)
-                stateSpaceRefreshing = false
+            let intervalRemaining = max(0, 0.28 - Date().timeIntervalSince(dateSpaceRefreshStarted))
+            let taskRefresh = DispatchWorkItem { [weak self] in
+                withAnimation(.easeInOut(duration: 0.22)) {
+                    self?.refreshSpaceState(force: true, snapshot: snapshotCurrent, windows: windowsCurrent)
+                    self?.stateSpaceRefreshing = false
+                }
             }
+
+            taskSpaceRefresh = taskRefresh
+            DispatchQueue.main.asyncAfter(deadline: .now() + intervalRemaining, execute: taskRefresh)
         } else {
             let taskRefresh = DispatchWorkItem { [weak self] in
                 self?.refreshSpaceStateWhenReady(previous: snapshotPrevious, attemptsRemaining: attemptsRemaining - 1)
