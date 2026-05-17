@@ -586,12 +586,19 @@ struct WindowRow: View {
 
                 Spacer(minLength: 8)
 
-                HStack(spacing: 4) {
+                ZStack {
                     if stateCopied {
-                        Image(systemName: "checkmark")
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark")
+                            Text("Copied")
+                        }
+                        .transition(.scale(scale: 0.82).combined(with: .opacity))
                     }
 
-                    Text(stateCopied ? "Copied" : targetId)
+                    if !stateCopied {
+                        Text(targetId)
+                            .transition(.scale(scale: 0.82).combined(with: .opacity))
+                    }
                 }
                 .font(.caption.monospaced())
                 .foregroundStyle(stateCopied ? .primary : .secondary)
