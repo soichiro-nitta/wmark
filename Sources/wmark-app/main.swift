@@ -484,24 +484,18 @@ struct AppToolbar: View {
                 .lineLimit(1)
 
             HStack(spacing: 10) {
-                Button {
+                ToolbarIconButton(systemImage: "arrow.clockwise", help: "Scan") {
                     model.scan()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
                 }
                 .keyboardShortcut("r")
-                .help("Scan")
 
-                Button {
+                ToolbarIconButton(systemImage: model.stateSelectionMode ? "xmark" : "scope", help: model.stateSelectionMode ? "Cancel" : "Select") {
                     if model.stateSelectionMode {
                         model.stopSelectionMode()
                     } else {
                         model.startSelectionMode()
                     }
-                } label: {
-                    Image(systemName: model.stateSelectionMode ? "xmark" : "scope")
                 }
-                .help(model.stateSelectionMode ? "Cancel" : "Select")
             }
             .padding(.horizontal, 9)
             .padding(.vertical, 7)
@@ -519,6 +513,27 @@ struct AppToolbar: View {
         .buttonStyle(.plain)
         .font(.title3)
         .frame(height: 42)
+    }
+}
+
+struct ToolbarIconButton: View {
+    let systemImage: String
+    let help: String
+    let action: () -> Void
+    @State private var stateHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .frame(width: 24, height: 24)
+                .background(stateHovering ? Color.accentColor.opacity(0.8) : Color.clear)
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .onHover { valueHovering in
+            stateHovering = valueHovering
+        }
     }
 }
 
